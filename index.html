@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantifier Chaos: How Many vs How Much</title>
+<style>
+       :root {
+           --p1-color: #3498db;
+           --p2-color: #2ecc71;
+           --bg-dark: #2c3e50;
+       }
+
+       body {
+           margin: 0;
+           padding: 0;
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           background-color: var(--bg-dark);
+           color: white;
+           overflow: hidden;
+           user-select: none;
+           touch-action: manipulation;
+       }
+
+       /* Screen Shake Animation */
+       @keyframes shake {
+           0% { transform: translate(1px, 1px) rotate(0deg); }
+           10% { transform: translate(-1px, -2px) rotate(-1deg); }
+           20% { transform: translate(-3px, 0px) rotate(1deg); }
+           30% { transform: translate(3px, 2px) rotate(0deg); }
+           40% { transform: translate(1px, -1px) rotate(1deg); }
+           50% { transform: translate(-1px, 2px) rotate(-1deg); }
+           60% { transform: translate(-3px, 1px) rotate(0deg); }
+           70% { transform: translate(3px, 1px) rotate(-1deg); }
+           80% { transform: translate(-1px, -1px) rotate(1deg); }
+           90% { transform: translate(1px, 2px) rotate(0deg); }
+           100% { transform: translate(1px, -2px) rotate(-1deg); }
+       }
+
+       .shaking {
+           animation: shake 0.2s infinite;
+       }
+
+       /* Layout */
+       #game-container {
+           display: flex;
+           width: 100vw;
+           height: 100vh;
+           position: relative;
+       }
+
+       .player-side {
+           flex: 1;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: flex-end;
+           padding-bottom: 50px;
+           position: relative;
+           border: 2px solid rgba(255,255,255,0.1);
+       }
+
+       #p1-side { background: linear-gradient(to bottom, #1a2a6c, #3498db); }
+       #p2-side { background: linear-gradient(to bottom, #1d3112, #2ecc71); }
+
+       /* Carousel */
+       #carousel-track {
+           position: absolute;
+           top: 20px;
+           width: 100%;
+           height: 120px;
+           background: rgba(0,0,0,0.4);
+           overflow: hidden;
+           border-top: 4px solid gold;
+           border-bottom: 4px solid gold;
+           z-index: 10;
+       }
+
+       .item {
+           position: absolute;
+           right: -100px;
+           width: 80px;
+           height: 80px;
+           background: white;
+           border-radius: 15px;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           cursor: pointer;
+           color: black;
+           font-weight: bold;
+           font-size: 10px;
+           box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+           transition: transform 0.1s;
+       }
+
+       .item:active { transform: scale(0.9); }
+
+       .item img { width: 50px; height: 50px; }
+
+       /* Baskets */
+       .basket {
+           width: 250px;
+           height: 180px;
+           background: #8b4513;
+           border-radius: 0 0 50% 50%;
+           border: 8px solid #5d2e0a;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           text-align: center;
+           box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+       }
+
+       .basket h2 { margin: 0; font-size: 24px; text-transform: uppercase; }
+       .basket p { margin: 5px 0 0; font-style: italic; opacity: 0.8; }
+
+       /* HUD */
+       #timer-box {
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           background: #e74c3c;
+           width: 100px;
+           height: 100px;
+           border-radius: 50%;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           font-size: 40px;
+           font-weight: bold;
+           border: 5px solid white;
+           z-index: 100;
+           box-shadow: 0 0 20px rgba(0,0,0,0.5);
+       }
+
+       .score-display {
+           position: absolute;
+           bottom: 20px;
+           font-size: 30px;
+           font-weight: bold;
+           background: rgba(0,0,0,0.5);
+           padding: 10px 20px;
+           border-radius: 10px;
+       }
+
+       /* Overlay */
+       #overlay {
+           position: fixed;
+           top: 0; left: 0; width: 100%; height: 100%;
+           background: rgba(0,0,0,0.9);
+           z-index: 200;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           text-align: center;
+       }
+
+       button {
+           padding: 15px 40px;
+           font-size: 24px;
+           background: #f1c40f;
+           border: none;
+           border-radius: 50px;
+           cursor: pointer;
+           font-weight: bold;
+       }
+</style>
+</head>
+<body id="body">
+
+<div id="overlay">
+<h1>QUANTIFIER CHALLENGE</h1>
+<p>Sort items by touching them!</p>
+<p>P1: HOW MANY (Countable) | P2: HOW MUCH (Uncountable)</p>
+<button onclick="startGame()">START GAME</button>
+</div>
+
+<div id="timer-box">60</div>
+
+<div id="carousel-track"></div>
+
+<div id="game-container">
+<div id="p1-side" class="player-side">
+<div class="score-display">P1 Score: <span id="p1-score">0</span></div>
+<div class="basket" id="basket-p1">
+<h2>HOW MANY?</h2>
+<p>(Countable)</p>
+</div>
+</div>
+
+<div id="p2-side" class="player-side">
+<div class="score-display">P2 Score: <span id="p2-score">0</span></div>
+<div class="basket" id="basket-p2">
+<h2>HOW MUCH?</h2>
+<p>(Uncountable)</p>
+</div>
+</div>
+</div>
+
+<script>
+       const countable = ["Pancake", "Muffin", "Donut", "Taco", "Olive", "Peanut", "Meatball", "Cupcake"];
+       const uncountable = ["Flour", "Sugar", "Honey", "Soup", "Bread", "Butter", "Meat", "Pasta", "Yogurt", "Pepper", "Ice Cream", "Tea", "Coffee", "Oil", "Ketchup"];
+
+       let score1 = 0;
+       let score2 = 0;
+       let timeLeft = 60;
+       let gameActive = false;
+       let itemFrequency = 1000;
+
+       function startGame() {
+           document.getElementById('overlay').style.display = 'none';
+           score1 = 0;
+           score2 = 0;
+           timeLeft = 60;
+           gameActive = true;
+           updateScores();
+
+           const timerInterval = setInterval(() => {
+               timeLeft--;
+               document.getElementById('timer-box').innerText = timeLeft;
+
+               if (timeLeft <= 10 && timeLeft > 0) {
+                   document.getElementById('body').classList.add('shaking');
+                   // In a real app, you'd trigger the audio file here
+                   console.log("Dramatic Sound Triggered!");
+               }
+
+               if (timeLeft <= 0) {
+                   clearInterval(timerInterval);
+                   endGame();
+               }
+           }, 1000);
+
+           spawnItem();
+       }
+
+       function spawnItem() {
+           if (!gameActive) return;
+
+           const isCountable = Math.random() > 0.5;
+           const pool = isCountable ? countable : uncountable;
+           const itemName = pool[Math.floor(Math.random() * pool.length)];
+
+           const itemEl = document.createElement('div');
+           itemEl.className = 'item';
+           itemEl.innerHTML = `<span>${itemName}</span>`;
+           itemEl.style.right = '-100px';
+           itemEl.style.top = '15px';
+
+           document.getElementById('carousel-track').appendChild(itemEl);
+
+           itemEl.addEventListener('mousedown', () => handleTouch(itemName, isCountable, itemEl));
+           itemEl.addEventListener('touchstart', () => handleTouch(itemName, isCountable, itemEl));
+
+           let pos = -100;
+           const moveInterval = setInterval(() => {
+               if (!gameActive) {
+                   clearInterval(moveInterval);
+                   itemEl.remove();
+                   return;
+               }
+               pos += 3;
+               itemEl.style.left = pos + 'px';
+
+               if (pos > window.innerWidth) {
+                   clearInterval(moveInterval);
+                   itemEl.remove();
+               }
+           }, 20);
+
+           setTimeout(spawnItem, itemFrequency);
+           if(itemFrequency > 400) itemFrequency -= 10; // Speed up over time
+       }
+
+       function handleTouch(name, isCountable, element) {
+           if (!gameActive) return;
+
+           const rect = element.getBoundingClientRect();
+           const centerX = rect.left + rect.width / 2;
+
+           if (centerX < window.innerWidth / 2) {
+               // P1 Side - Wants Countable
+               if (isCountable) {
+                   score1 += 10;
+                   flashElement('basket-p1', '#2ecc71');
+               } else {
+                   score1 -= 5;
+                   flashElement('basket-p1', '#e74c3c');
+               }
+           } else {
+               // P2 Side - Wants Uncountable
+               if (!isCountable) {
+                   score2 += 10;
+                   flashElement('basket-p2', '#2ecc71');
+               } else {
+                   score2 -= 5;
+                   flashElement('basket-p2', '#e74c3c');
+               }
+           }
+           updateScores();
+           element.remove();
+       }
+
+       function flashElement(id, color) {
+           const el = document.getElementById(id);
+           const original = el.style.backgroundColor;
+           el.style.backgroundColor = color;
+           setTimeout(() => el.style.backgroundColor = original, 200);
+       }
+
+       function updateScores() {
+           document.getElementById('p1-score').innerText = score1;
+           document.getElementById('p2-score').innerText = score2;
+       }
+
+       function endGame() {
+           gameActive = false;
+           document.getElementById('body').classList.remove('shaking');
+           const winner = score1 > score2 ? "Player 1 Wins!" : (score2 > score1 ? "Player 2 Wins!" : "It's a Tie!");
+
+           document.getElementById('overlay').style.display = 'flex';
+           document.getElementById('overlay').innerHTML = `
+<h1>GAME OVER</h1>
+<h2 style="color: #f1c40f">${winner}</h2>
+<div style="display:flex; gap: 50px; margin: 20px;">
+<div><h3>P1 Score</h3><p style="font-size:40px">${score1}</p></div>
+<div><h3>P2 Score</h3><p style="font-size:40px">${score2}</p></div>
+</div>
+<button onclick="location.reload()">PLAY AGAIN</button>
+           `;
+       }
+</script>
+</body>
+</html>
